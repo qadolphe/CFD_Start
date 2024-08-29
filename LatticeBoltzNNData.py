@@ -2,7 +2,7 @@ import numpy as np
 import h5py
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.animation import FuncAnimation
+from matplotlib.animation import FuncAnimation, FFMpegWriter
 from matplotlib.widgets import Button
 
 def distance(x1,y1,x2,y2):
@@ -18,6 +18,42 @@ def is_inside_ellipse(x, y, center_x, center_y, semi_major, semi_minor, angle):
     ellipse_eq = (x_rot**2 / semi_major**2) + (y_rot**2 / semi_minor**2)
     return ellipse_eq <= 1
 
+class Obsticle():
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+        self.name = None
+        self.object = None
+    
+class Circle(Obsticle):
+    def __init__(self, Nx,Ny, circleX, circleY, radius):
+        super().__init__(circleX,circleY)
+
+        # circleX, circleY = self.Nx//4, self.Ny//2
+        radius = 13
+        circle = np.full((Ny,Nx),False)
+        for y in range(Ny):
+            for x in range(Nx):
+                if distance(circleX,circleY,x,y) < radius: circle[y][x] = True
+        self.object = circle
+        self.name = "Circle"
+
+class Ellipse(Obsticle):
+    def __init__(self,Nx,Ny, ellipse_center_x, ellipse_center_y, semi_major_axis, semi_minor_axis, angle):
+        super().__init__(ellipse_center_x,ellipse_center_y)
+
+        # # Ellipse
+        # ellipse_center_x, ellipse_center_y = self.Nx // 4, self.Ny // 2
+        # semi_major_axis = 20
+        # semi_minor_axis = 5
+        # angle = np.pi / 7  # 45 degrees
+        ellipse = np.full((Ny, Nx), False)
+        for y in range(Ny):
+            for x in range(Nx):
+                if is_inside_ellipse(x, y, ellipse_center_x, ellipse_center_y, semi_major_axis, semi_minor_axis, angle):
+                    ellipse[y][x] = True
+        self.object = ellipse
+        self.name = "Ellipse"
 
 class Scene():
     def __init__(self):
@@ -50,31 +86,24 @@ class Scene():
         # Cylinder boundary
         circleX, circleY = self.Nx//4, self.Ny//2
         radius = 13
-        circle = np.full((self.Ny,self.Nx),False)
-        for y in range(self.Ny):
-            for x in range(self.Nx):
-                if distance(circleX,circleY,x,y) < radius: circle[y][x] = True
-        self.objects.append(circle)
-            
+        self.objects.append(Circle(self.Nx,self.Ny,circleX,circleY,radius))
+        
         # Ellipse
         ellipse_center_x, ellipse_center_y = self.Nx // 4, self.Ny // 2
         semi_major_axis = 20
         semi_minor_axis = 5
         angle = np.pi / 7  # 45 degrees
-        ellipse = np.full((self.Ny, self.Nx), False)
-        for y in range(self.Ny):
-            for x in range(self.Nx):
-                if is_inside_ellipse(x, y, ellipse_center_x, ellipse_center_y, semi_major_axis, semi_minor_axis, angle):
-                    ellipse[y][x] = True
-        self.objects.append(ellipse)
+        self.objects.append(Ellipse(self.Nx,self.Ny, ellipse_center_x,ellipse_center_y,semi_major_axis, semi_minor_axis, angle))
+        
     
     def runAll(self):
         for thing in self.objects:
             self.Simulate(thing)
 
 
-    def Simulate(self, objects):
+    def Simulate(self, obsticle):
         # Prep figure
+        objects = obsticle.object
         fig, ax = plt.subplots(figsize=(8, 4), dpi=80)
         ax.set_aspect('equal')
         ax.get_xaxis().set_visible(False)
@@ -154,6 +183,8 @@ class Scene():
         button.on_clicked(toggle_visibility)
 
         plt.show()
+        
+        # anim.save(f'animation{obsticle.name}.gif', writer='PillowWriter', fps=120, dpi=220)
 
         
 # Storage for the data
