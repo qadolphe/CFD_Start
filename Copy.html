@@ -470,7 +470,10 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 		c.fillStyle = "#FF0000";
 		f = scene.fluid;
 		n = f.numY;
-
+		console.log("next")
+		for (var i = 0; i < f.numX; i++) {
+			console.log(f.u[i*n])
+		}
 		var cellScale = 1.1;
 
 		var h = f.h;

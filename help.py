@@ -14,7 +14,7 @@ class Fluid:
         self.newV = [ [0.0]*self.maxWidth for i in range(self.maxHeight)]
         self.p = [ [0.0]*self.maxWidth for i in range(self.maxHeight)]
         self.s = [ [0.0]*self.maxWidth for i in range(self.maxHeight)]
-        self.smoke = [ [0.0]*self.maxWidth for i in range(self.maxHeight)]
+        self.smoke = [ [1.0]*self.maxWidth for i in range(self.maxHeight)]
         self.newSmoke = [ [0.0]*self.maxWidth for i in range(self.maxHeight)]
 
         self.density = density
@@ -162,6 +162,11 @@ class Fluid:
                     y -= dt * v
                     self.newSmoke[i][j] = self.sampleField(x,y, "s")
 
+        # for i in range(len(self.smoke)):
+        #     for j in range(len(self.smoke[i])):
+        #         if self.newSmoke[i][j] != self.smoke[i][j]:
+        #             print(i , j)
+
         self.smoke[:] = [[val for val in row] for row in self.newSmoke]
 
     def simulate(self, dt, gravity, numIters):
@@ -171,76 +176,76 @@ class Fluid:
         self.advectVel(dt)
         self.advectSmoke(dt)
 
-def get_sci_color(value, min_val, max_val):
-    norm = mcolors.Normalize(vmin=min_val, vmax=max_val)
-    colormap = plt.get_cmap('jet')  # You can use any colormap here
-    return np.array(colormap(norm(value))[:3]) * 255  # Returns RGB values scaled to 0-255
+class Scene:
+    def __init__(self):
+        self.gravity = 0
+        self.dt = 1.0 / 120.0
+        self.numIters = 40
+        self.frameNr = 0
+        self.overRelaxation = 1.9
+        self.obstacleX = 0.0
+        self.obstacleY = 0.0
+        self.obstacleRadius = 0.15
+        self.paused = False
+        self.sceneNr = 0
+        self.showObstacle = False
+        self.showStreamlines = False
+        self.showVelocities = False
+        self.showPressure = False
+        self.showSmoke = True
+        self.fluid = None
 
-def draw_smoke(ax, fluid):
-    ax.clear()
-    numX, numY = fluid.maxWidth - 2, fluid.maxHeight - 2
-    h = fluid.h
-    smoke = np.array(fluid.smoke)
-    
-    # Normalize the smoke values for coloring
-    min_smoke = np.min(smoke)
-    max_smoke = np.max(smoke)
-    
-    # Prepare the image data
-    img_data = np.zeros((numY, numX, 3), dtype=np.uint8)
+scene = Scene()
 
-    for i in range(numX):
-        for j in range(numY):
-            s = smoke[i + 1][j + 1]  # Adjusting indices for padding
-            color = np.array([0, 0, 0], dtype=np.uint8)  # Default to black
-            
-            if s > 0:
-                # Get the color based on the smoke value
-                color = get_sci_color(s, min_smoke, max_smoke)
-            
-            img_data[j, i] = color
-    
-    # Display the smoke as an image
-    ax.imshow(img_data, interpolation='nearest')
-    ax.set_title('Smoke Visualization')
-    ax.axis('off')  # Turn off the axis
 
-# Initialize the fluid simulation
-density = 1000
-numX, numY = 100, 100
+simHeight = 1.1;	
+cScale = 200 / simHeight;
+simWidth = 200 / cScale;
+res = 100
 domainHeight = 1.0
-domainWidth = 
-h = 1.0
-dt = 0.1 / 60
-gravity = -9.81
-numIters = 100
+domainWidth = domainHeight / simHeight * simWidth
+h = domainHeight / res;
 
-fluid = Fluid(density, numX, numY, h)
+numX = int(domainWidth / h);
+numY = int(domainHeight / h);
 
-# Create a figure for plotting
-fig, ax = plt.subplots(figsize=(8, 8))
+density = 1000.0;
 
-# Run the simulation and draw smoke
-for _ in range(100):  # Simulate 100 frames
-    fluid.simulate(dt, gravity, numIters)
-    draw_smoke(ax, fluid)
-    plt.pause(0.1)  # Pause to update the plot
+scene.fluid = Fluid(density, numX, numY, h)
 
-plt.show()
+inVel = 2.0
+for i in range(numX):
+    for j in range(numY):
+        s = 1.0
+        if i == 0 or j == 0 or j == numY-1:
+            s = 0.0
+        scene.fluid.s[i][j] = s
 
+        if (i == 1):
+            scene.fluid.u[i][j] = inVel
+        
 
-# Function to update the simulation
+# Create figure and axis
+fig, ax = plt.subplots()
+smoke_img = ax.imshow(scene.fluid.smoke, origin='lower', cmap='gray', norm=mcolors.Normalize(vmin=0, vmax=1))
+
 def update(frame):
-    plt.clf()
-    fluid.simulate(dt, gravity, numIters)
-    plt.imshow(np.array(fluid.smoke), cmap='hot', interpolation='nearest')
-    plt.title(f"Frame {frame}")
-    plt.colorbar(label='Smoke Density')
+    # Add continuous smoke at the center
+    
+    # Simulate the fluid dynamics
+    scene.fluid.simulate(scene.dt, scene.gravity, scene.numIters)
+    
+    # Update the image with the new smoke values
+    print("next")
+    for row in scene.fluid.u:
+        print(row[1])
+    for row in scene.fluid.smoke:
+        row[2] = 0.0
+        
 
-# Create a figure for plotting
-fig = plt.figure(figsize=(8, 8))
+    smoke_img.set_data(scene.fluid.smoke)
+    return smoke_img,
 
-# Create an animation
-ani = animation.FuncAnimation(fig, update, frames=range(100), repeat=False)
+ani = animation.FuncAnimation(fig, update, frames=200, interval=50, blit=True)
 
-plt.show()
+#plt.show()
